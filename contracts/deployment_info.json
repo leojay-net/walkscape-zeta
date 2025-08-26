@@ -1,0 +1,9 @@
+{
+  "contractAddress": "0XE20D1321AF0E1C4676BA8F052A9E0E497BEF0EA8",
+  "network": "ZetaChain Mainnet",
+  "rpcUrl": "https://zetachain-mainnet.g.alchemy.com/v2/kwgGr9GGk4YyLXuGfEvpITv1jpvn3PgP",
+  "chainId": 7000,
+  "deployedAt": "2025-08-26T10:29:57Z",
+  "adminAddress": "0x95621720663a0DDBF121329FB0884779Ab7780B6",
+  "transactionHash": "0x8fe4d2e454caaa7646496b483e4667afbd58201fc7246cd67f3f4fcbf2abe7d4"
+}
