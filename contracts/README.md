@@ -2,7 +2,7 @@
 
 A comprehensive blockchain-based gaming ecosystem built on ZetaChain network, featuring player progression, collectible artifacts, virtual pets, social colonies, and staking mechanics.
 
-## 🌟 Features
+## Features
 
 - **Player Management**: Registration, XP tracking, health scores, and progress streaks
 - **Artifact Collection**: Location-based NFT-like collectibles with rarity system
@@ -11,7 +11,7 @@ A comprehensive blockchain-based gaming ecosystem built on ZetaChain network, fe
 - **Staking Rewards**: Long-term staking with growth multipliers and special rewards
 - **Touch Grass Check-ins**: Location-based check-ins with streak bonuses
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -54,7 +54,7 @@ Or with test data:
 make test-deploy
 ```
 
-## 📋 Available Commands
+## Available Commands
 
 | Command | Description |
 |---------|-------------|
@@ -67,7 +67,7 @@ make test-deploy
 | `make verify` | Verify deployed contract |
 | `make clean` | Clean build artifacts |
 
-## 🧪 Testing
+## Testing
 
 Run comprehensive test suite:
 ```bash
@@ -89,7 +89,7 @@ Generate coverage report:
 make coverage
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -104,7 +104,7 @@ The contracts are configured for ZetaChain mainnet:
 - **Chain ID**: detected dynamically from RPC
 - **Explorer**: See ZetaChain mainnet explorer
 
-## 📖 Contract Architecture
+## Contract Architecture
 
 ### WalkScapeCore.sol
 
@@ -143,7 +143,7 @@ Main contract containing all game logic:
 - `stakeForGrowth()`: Stake tokens for rewards
 - `harvestGrowthReward()`: Claim staking rewards
 
-## 📊 Game Mechanics
+## Game Mechanics
 
 ### XP System
 - Base XP gain: 10 per grass touch
@@ -170,14 +170,14 @@ Main contract containing all game logic:
 - Social interaction features
 - Maximum 50 members per colony
 
-## 🔍 Verification
+## Verification
 
 After deployment, verify your contract:
 ```bash
 make verify CONTRACT_ADDRESS=0x... NETWORK=zetachain-mainnet
 ```
 
-## 🛠️ Development
+## Development
 
 ### Local Development
 
@@ -203,7 +203,7 @@ Lint code:
 make lint
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 contracts/
@@ -218,7 +218,7 @@ contracts/
 └── deploy_zetachain.sh       # Deployment automation for ZetaChain
 ```
 
-## 🔐 Security Considerations
+## Security Considerations
 
 - Uses OpenZeppelin security modules (ReentrancyGuard, Pausable, Ownable)
 - Input validation on all public functions
@@ -226,7 +226,7 @@ contracts/
 - Safe arithmetic operations
 - Comprehensive test coverage
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -234,18 +234,18 @@ contracts/
 4. Run tests: `make test`
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
+## Support
 
 For questions and support:
 - Check the test files for usage examples
 - Review the contract documentation
 - Open an issue on GitHub
 
-## 🚀 Deployment Example
+## Deployment Example
 
 Complete deployment process:
 
