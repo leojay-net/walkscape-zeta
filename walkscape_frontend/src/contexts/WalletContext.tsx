@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { BrowserProvider, getAddress, isAddress } from 'ethers';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useAccount, useDisconnect, useWalletClient } from 'wagmi';
+import { useAppKit } from '@reown/appkit/react';
 import { getContract, PlayerStats } from '@/lib/web3';
 
 interface WalletContextType {
@@ -23,8 +24,10 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | null>(null);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-    const { ready, authenticated, user, login, logout } = usePrivy();
-    const { wallets } = useWallets();
+    const { address, isConnected, chainId } = useAccount();
+    const { disconnect: wagmiDisconnect } = useDisconnect();
+    const { open } = useAppKit();
+    const { data: walletClient } = useWalletClient();
 
     const [provider, setProvider] = useState<BrowserProvider | null>(null);
     const [isRegistered, setIsRegistered] = useState(false);
@@ -35,61 +38,47 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     const [registrationRetryCount, setRegistrationRetryCount] = useState(0);
     const maxRegistrationRetries = 3;
 
-    // Get the wallet address from Privy
-    const address = user?.wallet?.address || null;
-    const isConnected = ready && authenticated && !!address;
-
     // Initialize provider when wallet is connected
     useEffect(() => {
         const initializeProvider = async () => {
-            if (isConnected && wallets.length > 0) {
+            if (isConnected && walletClient) {
                 try {
-                    const wallet = wallets[0];
-                    console.log('Initializing provider for wallet:', wallet.walletClientType);
+                    console.log('Initializing provider for wallet client');
 
-                    // Get the Ethereum provider
-                    const ethProvider = await wallet.getEthereumProvider();
-                    console.log('Got Ethereum provider:', ethProvider);
-
-                    // Check if provider is valid before creating BrowserProvider
-                    if (ethProvider && typeof ethProvider === 'object' && 'request' in ethProvider) {
-                        try {
-                            // Create provider (let ethers auto-detect network)
-                            const ethersProvider = new BrowserProvider(ethProvider);
-
-                            // Verify we're on the correct network
-                            const network = await ethersProvider.getNetwork();
-                            console.log('Connected to network:', network);
-
-                            if (network.chainId !== BigInt(7000)) {
-                                console.warn(`Connected to wrong network: ${network.chainId}. Expected: 7000`);
-                                // Don't set provider if on wrong network
-                                setProvider(null);
-                                return;
-                            }
-
-                            console.log('Created Ethers provider successfully');
-                            setProvider(ethersProvider);
-                        } catch (providerError) {
-                            console.error('Error creating BrowserProvider:', providerError);
-                            setProvider(null);
-                        }
-                    } else {
-                        console.warn('Invalid Ethereum provider received:', ethProvider);
+                    // Check if we're on the correct network
+                    if (chainId !== 7000) {
+                        console.warn(`Connected to wrong network: ${chainId}. Expected: 7000`);
                         setProvider(null);
+                        return;
                     }
+
+                    // Create BrowserProvider from walletClient
+                    const ethersProvider = new BrowserProvider(walletClient as any);
+
+                    // Verify the network
+                    const network = await ethersProvider.getNetwork();
+                    console.log('Connected to network:', network);
+
+                    if (network.chainId !== BigInt(7000)) {
+                        console.warn(`Connected to wrong network: ${network.chainId}. Expected: 7000`);
+                        setProvider(null);
+                        return;
+                    }
+
+                    console.log('Created Ethers provider successfully');
+                    setProvider(ethersProvider);
                 } catch (error) {
                     console.error('Error initializing provider:', error);
                     setProvider(null);
                 }
             } else {
-                console.log('Not connected or no wallets available');
+                console.log('Not connected or no wallet client available');
                 setProvider(null);
             }
         };
 
         initializeProvider();
-    }, [isConnected, wallets]);
+    }, [isConnected, walletClient, chainId]);
 
     const checkPlayerRegistration = useCallback(async (playerAddress: string) => {
         if (!provider) return;
@@ -199,7 +188,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     const connect = async () => {
         try {
-            await login();
+            // Open AppKit modal to connect wallet
+            await open();
         } catch (error) {
             console.error('Failed to connect wallet:', error);
         }
@@ -207,7 +197,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     const disconnect = async () => {
         try {
-            await logout();
+            await wagmiDisconnect();
             // Clear local state
             setProvider(null);
             setIsRegistered(false);
@@ -239,51 +229,55 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     // Helper function to switch to ZetaChain Mainnet
     const switchToZetaChainNetwork = async () => {
-        if (!isConnected) {
+        if (!isConnected || !walletClient) {
             console.error('Not connected to any wallet');
             return false;
         }
 
         try {
-            // For wallets that support network switching
-            if (wallets.length > 0) {
-                const wallet = wallets[0];
-                if (wallet && wallet.getEthereumProvider) {
-                    const ethProvider = await wallet.getEthereumProvider();
+            // Use walletClient to switch network
+            const provider = walletClient as any;
 
-                    // Try to add and switch to ZetaChain mainnet
-                    try {
-                        await ethProvider.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [
-                                {
-                                    chainId: '0x1B58', // 7000 in hex
-                                    chainName: 'ZetaChain Mainnet',
-                                    nativeCurrency: {
-                                        name: 'ZetaChain',
-                                        symbol: 'ZETA',
-                                        decimals: 18,
+            if (provider.request) {
+                try {
+                    // Try to switch to existing ZetaChain network
+                    await provider.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x1B58' }], // 7000 in hex
+                    });
+
+                    console.log('Successfully switched to ZetaChain network');
+                    return true;
+                } catch (switchError: any) {
+                    // If network doesn't exist, add it
+                    if (switchError.code === 4902) {
+                        try {
+                            await provider.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [
+                                    {
+                                        chainId: '0x1B58', // 7000 in hex
+                                        chainName: 'ZetaChain Mainnet',
+                                        nativeCurrency: {
+                                            name: 'ZetaChain',
+                                            symbol: 'ZETA',
+                                            decimals: 18,
+                                        },
+                                        rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL || 'https://zetachain-mainnet.g.alchemy.com/v2/kwgGr9GGk4YyLXuGfEvpITv1jpvn3PgP'],
+                                        blockExplorerUrls: ['https://explorer.zetachain.com'],
                                     },
-                                    rpcUrls: [process.env.NEXT_PUBLIC_RPC_URL || 'https://zetachain-mainnet.g.alchemy.com/v2/YOUR_KEY'],
-                                    blockExplorerUrls: [],
-                                },
-                            ],
-                        });
+                                ],
+                            });
 
-                        console.log('Successfully added ZetaChain network');
-
-                        // Now switch to the network
-                        await ethProvider.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x1B58' }], // 7000 in hex
-                        });
-
-                        console.log('Successfully switched to ZetaChain network');
-                        return true;
-                    } catch (error) {
-                        console.error('Failed to switch network:', error);
-                        return false;
+                            console.log('Successfully added and switched to ZetaChain network');
+                            return true;
+                        } catch (addError) {
+                            console.error('Failed to add network:', addError);
+                            return false;
+                        }
                     }
+                    console.error('Failed to switch network:', switchError);
+                    return false;
                 }
             }
         } catch (error) {
